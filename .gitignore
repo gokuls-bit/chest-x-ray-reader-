@@ -1,0 +1,25 @@
+# Node
+frontend/node_modules/
+frontend/.next/
+
+# Python
+ai-backend/venv/
+__pycache__/
+*.pyc
+
+# Dataset
+dataset/
+data/
+*.zip
+*.tar
+*.csv
+
+# Models
+models/
+*.pt
+*.pth
+*.h5
+*.onnx
+
+# Env
+.env
