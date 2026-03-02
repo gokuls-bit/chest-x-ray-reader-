@@ -15,6 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"                     # data/train/  data/val/
 MODEL_SAVE_PATH = BASE_DIR / "chest_xray_model.pth"
 CONFUSION_MATRIX_PATH = BASE_DIR / "confusion_matrix.png"
+ROC_CURVE_PATH = BASE_DIR / "roc_curve.png"
 
 # ──────────────────────────────────────────────
 # Image preprocessing
@@ -27,11 +28,11 @@ IMAGENET_STD = [0.229, 0.224, 0.225]             # ImageNet channel stds
 # Training hyperparameters
 # ──────────────────────────────────────────────
 BATCH_SIZE = 32
-NUM_WORKERS = os.cpu_count() or 4                # DataLoader workers
-LEARNING_RATE = 1e-3
+NUM_WORKERS = 4                                  # DataLoader workers
+LEARNING_RATE = 1e-4
 WEIGHT_DECAY = 1e-4                              # L2 regularization
-NUM_EPOCHS = 25
-PATIENCE = 5                                     # Early-stopping patience (epochs)
+NUM_EPOCHS = 30
+PATIENCE = 10                                    # Early-stopping patience (epochs)
 DROPOUT_RATE = 0.3
 
 # ──────────────────────────────────────────────
