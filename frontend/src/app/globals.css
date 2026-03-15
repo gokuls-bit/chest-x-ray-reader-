@@ -2,103 +2,108 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap");
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.75rem;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 6.5%;
-    --card-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+    --card: 224 71% 4%;
+    --card-foreground: 213 31% 91%;
+    --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 222.2 47.4% 11.2%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --muted: 223 47% 11%;
+    --muted-foreground: 215.4 16.3% 56.9%;
+    --accent: 216 34% 17%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+    --ring: 221 83% 53%;
+    --radius: 1.5rem;
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border selection:bg-medical-blue-500/30;
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased selection:text-white;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tighter;
   }
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Neural core background */
+.neural-bg {
+  background: radial-gradient(circle at 50% 50%, #082649 0%, #020617 100%);
 }
 
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
+.noise-bg {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-full;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground/40;
-}
-
-/* Medical typography */
-.medical-heading {
-  @apply text-2xl font-bold tracking-tight text-foreground;
-}
-
-.medical-subtitle {
-  @apply text-sm text-muted-foreground;
-}
-
-/* Glassmorphism card */
+/* Holographic Card Effect */
 .glass-card {
-  @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 rounded-2xl shadow-xl;
+  @apply relative overflow-hidden bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] shadow-2xl transition-all duration-500;
+}
+
+.glass-card::before {
+  content: "";
+  @apply absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none;
+}
+
+.glass-card:hover {
+  @apply border-white/20 bg-white/[0.05] -translate-y-1;
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.5), 0 0 20px 0 rgba(14, 135, 235, 0.1);
 }
 
 /* Gradient text */
 .gradient-text {
-  @apply bg-gradient-to-r from-medical-blue-500 to-medical-blue-700 dark:from-medical-blue-400 dark:to-medical-blue-600 bg-clip-text text-transparent;
+  @apply bg-gradient-to-r from-medical-blue-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent;
 }
 
-/* Pulse animation for critical findings */
-.pulse-critical {
-  animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+/* Scanning Line Animation */
+.scan-line {
+  @apply absolute left-0 w-full h-1 bg-gradient-to-r from-transparent via-medical-blue-500 to-transparent opacity-50;
+  animation: scan 3s linear infinite;
 }
 
-@keyframes pulse-red {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+@keyframes scan {
+  from { top: 0%; }
+  to { top: 100%; }
+}
+
+/* Cyber Button */
+.cyber-button {
+  @apply relative inline-flex items-center justify-center px-8 py-4 font-black text-xs uppercase tracking-[0.2em] transition-all duration-300 rounded-full overflow-hidden;
+  background: white;
+  color: black;
+}
+
+.cyber-button:hover {
+  @apply scale-105 shadow-[0_0_30px_rgba(255,255,255,0.3)];
+}
+
+/* Utility for HUD elements */
+.hud-label {
+  @apply text-[10px] font-black uppercase tracking-[0.3em] text-medical-blue-500 mb-2 block;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-black/20;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
 }

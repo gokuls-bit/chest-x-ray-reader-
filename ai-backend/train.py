@@ -226,9 +226,14 @@ def train():
     model = ChestXRayClassifier().to(device)
     
     # Training Primitives
-    criterion = nn.CrossEntropyLoss()
+    # Use Label Smoothing to prevent over-confidence
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
+    
+    # Use AdamW with weight decay
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.3, patience=2)
+    
+    # Step LR scheduler against the maximizing metric (AUC)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2)
     scaler = torch.amp.GradScaler('cuda', enabled=device.type == "cuda")
     
     # Tracking
@@ -237,17 +242,18 @@ def train():
     best_state = {}
     
     print(f"{'Epoch':>5} | {'Train Loss':>10} {'Train Acc':>9} | {'Val Loss':>8} {'Val Acc':>8} {'Val AUC':>7} | {'Status'}")
-    print("-" * 80)
+    print("-" * 85)
     
     start_time = time.time()
     for epoch in range(1, NUM_EPOCHS + 1):
         t_loss, t_acc = train_one_epoch(model, train_loader, criterion, optimizer, device, scaler)
         v_loss, v_acc, v_auc, last_val_labels, last_val_probs = validate(model, val_loader, criterion, device)
         
-        # Step LR scheduler against the maximizing metric
         scheduler.step(v_auc)
         
         status = ""
+        current_lr = optimizer.param_groups[0]['lr']
+        
         if v_auc > best_auc:
             best_auc = v_auc
             epochs_no_improve = 0
@@ -255,7 +261,8 @@ def train():
                 'epoch': epoch,
                 'model_state_dict': copy.deepcopy(model.state_dict()),
                 'optimizer_state_dict': copy.deepcopy(optimizer.state_dict()),
-                'auc': best_auc
+                'auc': best_auc,
+                'model_name': 'EfficientNet-B0'
             }
             torch.save(best_state, str(MODEL_SAVE_PATH))
             status = "⭐ Best AUC!"
@@ -263,7 +270,7 @@ def train():
             epochs_no_improve += 1
             status = f"wait ({epochs_no_improve}/{PATIENCE})"
             
-        print(f"{epoch:>5} | {t_loss:>10.4f} {t_acc:>8.1%} | {v_loss:>8.4f} {v_acc:>8.1%} {v_auc:>7.3f} | {status}")
+        print(f"{epoch:>5} | {t_loss:>10.4f} {t_acc:>8.1%} | {v_loss:>8.4f} {v_acc:>8.1%} {v_auc:>7.3f} | {status} (lr: {current_lr:.1e})")
         
         if epochs_no_improve >= PATIENCE:
             print(f"\n⏹️ Early stopping triggered after {epoch} epochs.")

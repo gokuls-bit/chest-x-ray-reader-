@@ -8,47 +8,29 @@ export interface PredictionResult {
 
 export async function getPrediction(imageUrl: string): Promise<PredictionResult> {
     const inferenceUrl = process.env.AI_INFERENCE_URL;
-    const apiKey = process.env.AI_API_KEY;
-
+    
     if (!inferenceUrl) {
         throw new Error("AI_INFERENCE_URL is not configured");
     }
 
-    // Fetch the image and send it to the FastAPI backend
-    const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) {
-        throw new Error("Failed to fetch image for prediction");
-    }
-
-    const imageBlob = await imageResponse.blob();
-    const formData = new FormData();
-    formData.append("file", imageBlob, "xray.jpg");
-
     const response = await fetch(inferenceUrl, {
         method: "POST",
-        headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl }),
     });
 
     if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`AI prediction failed: ${errorText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.error || "AI prediction failed");
     }
 
     const result = await response.json();
 
-    // Derive severity from confidence
-    const confidence = result.confidence || result.probability || 0;
-    let severity = "Normal";
-    if (result.prediction !== "Normal") {
-        severity = confidence >= 0.8 ? "Critical" : "Review";
-    }
-
     return {
         prediction: result.prediction,
-        confidence,
-        probabilities: result.probabilities || [],
-        severity,
-        findings: result.findings || [],
+        confidence: result.confidence ?? result.probability ?? 0,
+        probabilities: result.probabilities ?? [],
+        severity: result.severity ?? "Review",
+        findings: result.findings ?? [],
     };
 }

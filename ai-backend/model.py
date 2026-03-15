@@ -1,22 +1,27 @@
 import torch
 import torch.nn as nn
 from torchvision import models
-from config import NUM_CLASSES
+from config import NUM_CLASSES, DROPOUT_RATE
 
 class ChestXRayClassifier(nn.Module):
     """
-    Binary chest X-ray classifier built on DenseNet121.
-    Recommended architecture for medical imaging.
+    Binary chest X-ray classifier built on EfficientNet-B0.
+    EfficientNet provides a better balance between accuracy and computational cost.
     """
     def __init__(self, num_classes: int = NUM_CLASSES):
         super().__init__()
         
-        # Load pre-trained DenseNet121
-        self.backbone = models.densenet121(weights="IMAGENET1K_V1")
+        # Load pre-trained EfficientNet-B0
+        self.backbone = models.efficientnet_b0(weights="IMAGENET1K_V1")
         
-        # Replace the classifier head for binary classification
-        in_features = self.backbone.classifier.in_features
-        self.backbone.classifier = nn.Linear(in_features, num_classes)
+        # Replace the classifier head
+        # EfficientNet-B0 has 1280 features in the last layer
+        in_features = self.backbone.classifier[1].in_features
+        
+        self.backbone.classifier = nn.Sequential(
+            nn.Dropout(p=DROPOUT_RATE, inplace=True),
+            nn.Linear(in_features, num_classes)
+        )
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -40,6 +45,7 @@ if __name__ == "__main__":
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     
+    print(f"Model: EfficientNet-B0")
     print(f"Input  shape : {dummy.shape}")
     print(f"Output shape : {logits.shape}")
     print(f"Trainable params : {trainable_params:,}")

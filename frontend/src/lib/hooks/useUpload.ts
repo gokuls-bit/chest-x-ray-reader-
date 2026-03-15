@@ -10,15 +10,7 @@ interface UploadResult {
     findings: string[];
     imageUrl: string;
     imagePublicId: string;
-    reportId: string;
-}
-
-interface DirectPredictResult {
-    prediction: string;
-    confidence: number;
-    probabilities: { label: string; score: number }[];
-    severity: string;
-    findings: string[];
+    reportId?: string;
 }
 
 interface BatchResult {
@@ -46,27 +38,31 @@ interface PatientMeta {
 }
 
 export function useUpload() {
-    const [isUploading, setIsUploading] = useState(false);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
-    const [result, setResult] = useState<UploadResult | null>(null);
-    const [directResult, setDirectResult] = useState<DirectPredictResult | null>(null);
-    const [batchResult, setBatchResult] = useState<BatchResponse | null>(null);
+    const [files, setFiles] = useState<File[]>([]);
+    const [results, setResults] = useState<UploadResult[] | null>(null);
+    const [batchResults, setBatchResults] = useState<BatchResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    // Full flow: Upload to Cloudinary → Predict → Save report
-    const handleUpload = async (file: File, meta?: PatientMeta) => {
+    const handleUpload = async (newFiles: FileList | null) => {
+        if (!newFiles) return;
+        const fileList = Array.from(newFiles);
+        setFiles(prev => [...prev, ...fileList]);
+        
+        // If it's a single file and we want instant analysis
+        if (fileList.length === 1 && files.length === 0) {
+            await analyzeSingle(fileList[0]);
+        }
+    };
+
+    const analyzeSingle = async (file: File, meta?: PatientMeta) => {
         setError(null);
-        setResult(null);
-        setDirectResult(null);
-        setBatchResult(null);
-        setProgress(0);
+        setUploading(true);
+        setProgress(10);
 
         try {
-            // Step 1: Upload image to Cloudinary
-            setIsUploading(true);
-            setProgress(20);
-
+            // 1. Upload to Cloudinary
             const formData = new FormData();
             formData.append("file", file);
 
@@ -75,33 +71,22 @@ export function useUpload() {
                 body: formData,
             });
 
-            if (!uploadRes.ok) {
-                const err = await uploadRes.json().catch(() => ({}));
-                throw new Error(err.error || "Failed to upload image");
-            }
-
+            if (!uploadRes.ok) throw new Error("Cloudinary upload failed");
             const { imageUrl, imagePublicId } = await uploadRes.json();
             setProgress(50);
 
-            // Step 2: Get AI prediction
-            setIsUploading(false);
-            setIsAnalyzing(true);
-
+            // 2. Get AI Prediction
             const predictRes = await fetch("/api/predict", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ imageUrl }),
             });
 
-            if (!predictRes.ok) {
-                const err = await predictRes.json().catch(() => ({}));
-                throw new Error(err.error || "AI analysis failed");
-            }
-
+            if (!predictRes.ok) throw new Error("AI Prediction failed");
             const prediction = await predictRes.json();
             setProgress(80);
 
-            // Step 3: Save report
+            // 3. Save Report
             const reportRes = await fetch("/api/reports", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -113,142 +98,75 @@ export function useUpload() {
                 }),
             });
 
-            if (!reportRes.ok) {
-                const err = await reportRes.json().catch(() => ({}));
-                throw new Error(err.error || "Failed to save report");
-            }
-
-            const savedReport = await reportRes.json();
+            const reportData = await reportRes.json().catch(() => ({}));
             setProgress(100);
 
-            const uploadResult: UploadResult = {
-                prediction: prediction.prediction,
-                confidence: prediction.confidence,
-                probabilities: prediction.probabilities,
-                severity: prediction.severity,
-                findings: prediction.findings || [],
+            const result: UploadResult = {
+                ...prediction,
                 imageUrl,
                 imagePublicId,
-                reportId: savedReport._id,
+                reportId: reportData._id,
             };
 
-            setResult(uploadResult);
-            return uploadResult;
+            setResults([result]);
         } catch (err) {
-            const message = err instanceof Error ? err.message : "An error occurred";
-            setError(message);
-            throw err;
+            setError(err instanceof Error ? err.message : "Analysis failed");
         } finally {
-            setIsUploading(false);
-            setIsAnalyzing(false);
+            setUploading(false);
         }
     };
 
-    // Direct predict: Send file straight to FastAPI (no Cloudinary, no save)
-    const handleDirectPredict = async (file: File) => {
+    const handleBatchPredict = async () => {
+        if (files.length === 0) return;
+        
         setError(null);
-        setResult(null);
-        setDirectResult(null);
-        setBatchResult(null);
-        setProgress(0);
+        setUploading(true);
+        setProgress(10);
 
         try {
-            setIsAnalyzing(true);
-            setProgress(30);
-
             const formData = new FormData();
-            formData.append("file", file);
-
-            const res = await fetch("/api/direct-predict", {
-                method: "POST",
-                body: formData,
-            });
-
-            setProgress(80);
-
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(
-                    err.error || "AI analysis failed. Is the FastAPI server running?"
-                );
-            }
-
-            const prediction = await res.json();
-            setProgress(100);
-
-            setDirectResult(prediction);
-            return prediction;
-        } catch (err) {
-            const message = err instanceof Error ? err.message : "An error occurred";
-            setError(message);
-            throw err;
-        } finally {
-            setIsAnalyzing(false);
-        }
-    };
-
-    // Batch predict: Send multiple files to FastAPI
-    const handleBatchPredict = async (files: File[]) => {
-        setError(null);
-        setResult(null);
-        setDirectResult(null);
-        setBatchResult(null);
-        setProgress(0);
-
-        try {
-            setIsAnalyzing(true);
-            setProgress(10);
-
-            const formData = new FormData();
-            files.forEach((file) => formData.append("files", file));
+            files.forEach(file => formData.append("files", file));
 
             const res = await fetch("/api/batch-predict", {
                 method: "POST",
                 body: formData,
             });
 
-            setProgress(90);
-
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.error || "Batch prediction failed");
-            }
-
-            const data: BatchResponse = await res.json();
+            if (!res.ok) throw new Error("Batch processing failed");
+            const data = await res.json();
+            
+            setBatchResults(data);
             setProgress(100);
-
-            setBatchResult(data);
-            return data;
         } catch (err) {
-            const message = err instanceof Error ? err.message : "An error occurred";
-            setError(message);
-            throw err;
+            setError(err instanceof Error ? err.message : "Batch failed");
         } finally {
-            setIsAnalyzing(false);
+            setUploading(false);
         }
     };
 
+    const removeFile = (index: number) => {
+        setFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
     const reset = () => {
-        setResult(null);
-        setDirectResult(null);
-        setBatchResult(null);
+        setFiles([]);
+        setResults(null);
+        setBatchResults(null);
         setError(null);
         setProgress(0);
-        setIsUploading(false);
-        setIsAnalyzing(false);
+        setUploading(false);
     };
 
     return {
-        handleUpload,
-        handleDirectPredict,
-        handleBatchPredict,
-        isUploading,
-        isAnalyzing,
+        files,
+        uploading,
         progress,
-        result,
-        directResult,
-        batchResult,
+        results,
+        batchResults,
         error,
+        handleUpload,
+        handleBatchPredict,
+        removeFile,
         reset,
     };
 }

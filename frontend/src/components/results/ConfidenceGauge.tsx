@@ -1,77 +1,106 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+
 interface ConfidenceGaugeProps {
-    confidence: number; // 0–1
+    confidence: number;
 }
 
 export function ConfidenceGauge({ confidence }: ConfidenceGaugeProps) {
     const percentage = Math.round(confidence * 100);
-    const circumference = 2 * Math.PI * 45; // r=45
+    const circumference = 2 * Math.PI * 40;
     const offset = circumference - (confidence * circumference);
 
-    const getColor = () => {
-        if (percentage >= 90) return { stroke: "#10b981", text: "text-emerald-500" };
-        if (percentage >= 70) return { stroke: "#f59e0b", text: "text-amber-500" };
-        return { stroke: "#ef4444", text: "text-red-500" };
+    const getStatus = () => {
+        if (percentage >= 90) return { label: "High Precision", color: "text-emerald-500", stroke: "#10b981", bg: "bg-emerald-500/10" };
+        if (percentage >= 70) return { label: "Reliable", color: "text-medical-blue-500", stroke: "#0e87eb", bg: "bg-medical-blue-500/10" };
+        return { label: "Consult Human", color: "text-rose-500", stroke: "#f43f5e", bg: "bg-rose-500/10" };
     };
 
-    const color = getColor();
+    const status = getStatus();
 
     return (
-        <div className="glass-card p-6 flex flex-col items-center animate-fade-in">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-                Model Confidence
+        <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="glass-card p-8 flex flex-col items-center justify-center min-h-[300px]"
+        >
+            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-8">
+                Certainty Index
             </h3>
 
-            <div className="relative w-32 h-32">
-                <svg
-                    className="w-full h-full -rotate-90"
-                    viewBox="0 0 100 100"
-                >
-                    {/* Background circle */}
+            <div className="relative w-44 h-44">
+                {/* Outer Glow Circle */}
+                <div className={cn(
+                  "absolute inset-0 rounded-full blur-2xl opacity-20",
+                  status.bg
+                )} />
+                
+                <svg className="w-full h-full -rotate-90 drop-shadow-2xl" viewBox="0 0 100 100">
+                    {/* Background Track */}
                     <circle
                         cx="50"
                         cy="50"
-                        r="45"
+                        r="40"
                         fill="none"
-                        stroke="hsl(var(--muted))"
+                        stroke="currentColor"
                         strokeWidth="8"
+                        className="text-muted/30"
                     />
-                    {/* Progress circle */}
-                    <circle
+                    
+                    {/* Progress Track */}
+                    <motion.circle
+                        initial={{ strokeDashoffset: circumference }}
+                        animate={{ strokeDashoffset: offset }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
                         cx="50"
                         cy="50"
-                        r="45"
+                        r="40"
                         fill="none"
-                        stroke={color.stroke}
+                        stroke={status.stroke}
                         strokeWidth="8"
                         strokeLinecap="round"
                         strokeDasharray={circumference}
-                        strokeDashoffset={offset}
-                        className="transition-all duration-1500 ease-out"
-                        style={
-                            {
-                                "--gauge-offset": offset,
-                                animation: "gauge-fill 1.5s ease-out forwards",
-                            } as React.CSSProperties
-                        }
+                    />
+
+                    {/* Inner Accent Circle */}
+                    <circle
+                        cx="50"
+                        cy="50"
+                        r="32"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1"
+                        strokeDasharray="2 4"
+                        className="text-muted-foreground/20"
                     />
                 </svg>
-                {/* Center text */}
+
+                {/* Center Content */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className={`text-2xl font-bold ${color.text}`}>
-                        {percentage}%
-                    </span>
+                    <motion.span 
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className={cn("text-4xl font-black font-display", status.color)}
+                    >
+                        {percentage}<span className="text-xl">%</span>
+                    </motion.span>
                 </div>
             </div>
 
-            <p className="text-sm text-muted-foreground mt-3">
-                {percentage >= 90
-                    ? "High confidence"
-                    : percentage >= 70
-                        ? "Moderate confidence"
-                        : "Low confidence"}
-            </p>
-        </div>
+            <div className="mt-8 text-center space-y-1">
+                <div className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-block border", 
+                  status.color.replace('text-', 'bg-').replace('500', '500/10'),
+                  status.color.replace('text-', 'border-').replace('500', '500/20'),
+                  status.color
+                )}>
+                    {status.label}
+                </div>
+                <p className="text-xs text-muted-foreground font-medium max-w-[150px]">
+                    Statistical probability of model accuracy
+                </p>
+            </div>
+        </motion.div>
     );
 }
