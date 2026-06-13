@@ -2,9 +2,6 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 
 export { auth, currentUser };
 
-/**
- * Get authenticated user ID
- */
 export async function getUserFromClerk() {
     const { userId } = await auth();
 
@@ -15,9 +12,6 @@ export async function getUserFromClerk() {
     return userId;
 }
 
-/**
- * Get full Clerk user object
- */
 export async function getCurrentUser() {
     const user = await currentUser();
 
@@ -28,9 +22,6 @@ export async function getCurrentUser() {
     return user;
 }
 
-/**
- * Get authenticated user's email
- */
 export async function getUserEmail() {
     const user = await getCurrentUser();
 
@@ -41,9 +32,6 @@ export async function getUserEmail() {
     );
 }
 
-/**
- * Get user's full name
- */
 export async function getUserName() {
     const user = await getCurrentUser();
 
@@ -53,18 +41,11 @@ export async function getUserName() {
     );
 }
 
-/**
- * Get user profile image
- */
 export async function getUserImage() {
     const user = await getCurrentUser();
 
     return user.imageUrl;
 }
-
-/**
- * Return user details in one object
- */
 export async function getUserProfile() {
     const user = await getCurrentUser();
 
@@ -93,9 +74,7 @@ export async function isAuthenticated() {
     return !!userId;
 }
 
-/**
- * Require authentication
- */
+
 export async function requireAuth() {
     const { userId } = await auth();
 
@@ -106,18 +85,14 @@ export async function requireAuth() {
     return userId;
 }
 
-/**
- * Example role checker using Clerk metadata
- */
+
 export async function isAdmin() {
     const user = await getCurrentUser();
 
     return user.publicMetadata?.role === "admin";
 }
 
-/**
- * Get role from metadata
- */
+
 export async function getUserRole() {
     const user = await getCurrentUser();
 
