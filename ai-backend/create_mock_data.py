@@ -10,9 +10,7 @@ def create_mock_image(path, label="Normal"):
         x2, y2 = random.randint(0, 224), random.randint(0, 224)
         color = (random.randint(50, 255), random.randint(50, 255), random.randint(50, 255))
         d.line([(x1, y1), (x2, y2)], fill=color, width=3)
-    
     img.save(path)
-
 base_dir = "data"
 splits = ["train", "val"]
 classes = ["Normal", "Pneumonia"]
